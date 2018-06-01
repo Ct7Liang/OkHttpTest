@@ -1,5 +1,7 @@
 package ct7liang.android.apporitation.OkHttpUtils;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -15,6 +17,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 /**
  * Created by Administrator on 2018-05-25.
@@ -23,16 +26,38 @@ import okhttp3.Response;
 
 public class COkHttpUtils {
 
+    private static String cookieName = "cookie";
     private static OkHttpClient okHttpClient;
-    public static void init(){
+    private static SharedPreferences sp;
+
+    /**
+     * 初始化方法1, 创建OkHttpClient,避免重复创建, 创建sp文件
+     */
+    public static void init(Context context){
         if (okHttpClient == null){
             okHttpClient = new OkHttpClient();
         }
+        sp = context.getSharedPreferences("sessionID", Context.MODE_PRIVATE);
     }
 
+    /**
+     * 初始化方法2, 创建OkHttpClient,避免重复创建, 创建sp文件, 设置cookie的键名
+     */
+    public static void init(Context context, String cookieKeyName){
+        cookieName = cookieKeyName;
+        if (okHttpClient == null){
+            okHttpClient = new OkHttpClient();
+        }
+        sp = context.getSharedPreferences("sessionID", Context.MODE_PRIVATE);
+    }
+
+    //标记: 是否为POST方法
     private boolean isPost;
+    //请求路径
     private String url;
+    //参数集
     private ArrayList<ParamBean> params;
+    //头参数集
     private ArrayList<HeaderBean> headers;
 
     public static COkHttpUtils post(){
@@ -71,6 +96,7 @@ public class COkHttpUtils {
             Request request = new Request.Builder()
                     .post(getRequestBody())
                     .headers(getHeaders())
+                    .header(cookieName, sp.getString("sessionId", ""))
                     .url(url)
                     .tag(this)
                     .build();
@@ -84,39 +110,54 @@ public class COkHttpUtils {
                     msg.setData(b);
                     handler.sendMessage(msg);
                 }
-
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
-                    String header = response.header("Set-Cookie");
-                    String string = response.body().string();
-                    Message msg = Message.obtain();
-                    Bundle b = new Bundle();
-                    b.putCharSequence("data", string);
-                    msg.what = 1;
-                    msg.setData(b);
-                    handler.sendMessage(msg);
+                    String headers = response.header("Set-Cookie");
+                    if (headers!=null){
+                        sp.edit().putString("sessionId", headers.substring(0, headers.indexOf(';'))).apply();
+                    }
+                    ResponseBody body = response.body();
+                    if (body != null){
+                        String string = body.string();
+                        Message msg = Message.obtain();
+                        Bundle b = new Bundle();
+                        b.putCharSequence("data", string);
+                        msg.what = 1;
+                        msg.setData(b);
+                        handler.sendMessage(msg);
+                    }
                 }
             });
         }
         return this;
     }
 
+    /**
+     * 获取请求体 参数配置
+     */
     private RequestBody getRequestBody(){
         FormBody.Builder builder = new FormBody.Builder();
-        ParamBean paramBean;
-        for (int i = 0; i < params.size(); i++) {
-            paramBean = params.get(i);
-            builder.add(paramBean.key, paramBean.value);
+        if (params!=null){
+            ParamBean paramBean;
+            for (int i = 0; i < params.size(); i++) {
+                paramBean = params.get(i);
+                builder.add(paramBean.key, paramBean.value);
+            }
         }
         return builder.build();
     }
 
+    /**
+     * 获取请求头 参数配置
+     */
     private Headers getHeaders(){
         Headers.Builder builder = new Headers.Builder();
-        HeaderBean headerBean;
-        for (int i = 0; i < headers.size(); i++) {
-            headerBean = headers.get(i);
-            builder.add(headerBean.key, headerBean.value);
+        if (headers!=null){
+            HeaderBean headerBean;
+            for (int i = 0; i < headers.size(); i++) {
+                headerBean = headers.get(i);
+                builder.add(headerBean.key, headerBean.value);
+            }
         }
         return builder.build();
     }
@@ -127,17 +168,22 @@ public class COkHttpUtils {
         void onError(Exception e);
     }
 
+    /**
+     * handler切换线程至主线程
+     */
     private Handler handler = new Handler(){
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            switch (msg.what){
-                case 0:
-                    onResponse.onError((Exception) msg.getData().getParcelable("exception"));
-                    break;
-                case 1:
-                    onResponse.onSuccess((String) msg.getData().getCharSequence("data"));
-                    break;
+            if (onResponse!=null){
+                switch (msg.what){
+                    case 0:
+                        onResponse.onError((Exception) msg.getData().getParcelable("exception"));
+                        break;
+                    case 1:
+                        onResponse.onSuccess((String) msg.getData().getCharSequence("data"));
+                        break;
+                }
             }
         }
     };

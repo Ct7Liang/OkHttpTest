@@ -1,7 +1,6 @@
 package ct7liang.android.apporitation;
 
 import android.app.Application;
-
 import ct7liang.android.apporitation.OkHttpUtils.COkHttpUtils;
 
 /**
@@ -14,7 +13,7 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
 
-        COkHttpUtils.init();
+        COkHttpUtils.init(this, "cookie");
     }
 
 }
