@@ -3,15 +3,8 @@ package ct7liang.android.apporitation;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
-import java.io.IOException;
-
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.FormBody;
+import ct7liang.android.apporitation.OkHttpUtils.COkHttpUtils;
 import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 public class Main2Activity extends AppCompatActivity {
 
@@ -40,32 +33,52 @@ public class Main2Activity extends AppCompatActivity {
 //            }
 //        });
 
-        LogUtils.write("Main: " + Thread.currentThread().getId());
+        COkHttpUtils
+                .post().url(url)
+                .param("account", "18736607332")
+                .param("password", "123456")
+                .header("header-key", "header-value")
+                .header("header2-key", "header2-value")
+                .execute(new COkHttpUtils.OnResponse() {
+                    @Override
+                    public void onSuccess(String s) {
+                        LogUtils.write("onResponse: " + Thread.currentThread().getId());
+                        LogUtils.write("s: " + s);
+                    }
 
-        String[] sss = {"A", "a", "B", "b"};
+                    @Override
+                    public void onError(Exception e) {
+                        LogUtils.write("e: " + e);
+                    }
+                });
 
-        RequestBody requestBody = new FormBody.Builder()
-                .add("account", "18736607332")
-                .add("password", "123456")
-                .build();
-        final Request request = new Request.Builder()
-                .post(requestBody)
-                .header("header", "header")
-                .addHeader("addHeader", "addHeader")
-                .url(url)
-                .build();
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                LogUtils.write("onFailure: " + Thread.currentThread().getId() + "___" + e.toString());
-            }
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String header = response.header("Set-Cookie");
-                String string = response.body().string();
-                LogUtils.write("onResponse: " + Thread.currentThread().getId());
-            }
-        });
+//        RequestBody requestBody = new FormBody.Builder()
+//                .add("account", "18736607332")
+//                .add("password", "123456")
+//                .build();
+//        final Request request = new Request.Builder()
+//                .post(requestBody)
+//                .header("header-key", "header-value")
+//                .addHeader("header2-key", "header2-value")
+//                .url(url)
+//                .build();
+//        client.newCall(request).enqueue(new Callback() {
+//            @Override
+//            public void onFailure(Call call, IOException e) {
+//                LogUtils.write("onFailure: " + Thread.currentThread().getId() + "___" + e.toString());
+//            }
+//            @Override
+//            public void onResponse(Call call, Response response) throws IOException {
+//                String header = response.header("Set-Cookie");
+//                String string = response.body().string();
+//                LogUtils.write("onResponse: " + Thread.currentThread().getId());
+//            }
+//        });
+
+
+//        COkHttpUtils url1 = COkHttpUtils.post();
+//        COkHttpUtils url2 = url1.url("000000000000000");
+//        Toast.makeText(this, url1.equals(url2)?"TRUE":"FALSE", Toast.LENGTH_SHORT).show();
     }
     
 }
