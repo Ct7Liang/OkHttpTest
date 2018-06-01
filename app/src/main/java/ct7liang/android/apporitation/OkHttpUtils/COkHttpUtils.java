@@ -9,6 +9,7 @@ import android.os.Message;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import ct7liang.android.apporitation.LogUtils;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
@@ -59,6 +60,8 @@ public class COkHttpUtils {
     private ArrayList<ParamBean> params;
     //头参数集
     private ArrayList<HeaderBean> headers;
+    //发起请求方
+    private Call call;
 
     public static COkHttpUtils post(){
         if (okHttpClient==null){
@@ -100,9 +103,12 @@ public class COkHttpUtils {
                     .url(url)
                     .tag(this)
                     .build();
-            okHttpClient.newCall(request).enqueue(new Callback() {
+            call = okHttpClient.newCall(request);
+            LogUtils.write(System.currentTimeMillis()+"");
+            call.enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
+                    LogUtils.write(System.currentTimeMillis()+"");
                     Message msg = Message.obtain();
                     Bundle b = new Bundle();
                     b.putSerializable("exception", e);
@@ -112,6 +118,7 @@ public class COkHttpUtils {
                 }
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
+                    LogUtils.write(System.currentTimeMillis()+"");
                     String headers = response.header("Set-Cookie");
                     if (headers!=null){
                         sp.edit().putString("sessionId", headers.substring(0, headers.indexOf(';'))).apply();
@@ -130,6 +137,11 @@ public class COkHttpUtils {
             });
         }
         return this;
+    }
+
+    public void cancel(COkHttpUtils cOkHttpUtils){
+        Call call = cOkHttpUtils.call;
+
     }
 
     /**
